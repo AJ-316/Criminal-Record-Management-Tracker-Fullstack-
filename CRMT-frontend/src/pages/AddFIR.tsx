@@ -17,10 +17,11 @@ import { cn } from "@/lib/utils";
 
 const AddFIR = () => {
   const [caseId, setCaseId] = useState("");
-  const [suspectName, setSuspectName] = useState("");
   const [incidentDetails, setIncidentDetails] = useState("");
   const [dateOfIncident, setDateOfIncident] = useState<Date | undefined>(undefined);
   const [location, setLocation] = useState("");
+  const [jurisdictions, setJurisdictions] = useState<Array<any>>([]);
+  const [selectedJurisdiction, setSelectedJurisdiction] = useState<number | null>(null);
   const [complainants, setComplainants] = useState<Array<any>>([]);
   const [selectedComplainant, setSelectedComplainant] = useState<number | null>(null);
   const [accusedList, setAccusedList] = useState<Array<any>>([]);
@@ -43,11 +44,21 @@ const AddFIR = () => {
     let mounted = true;
     (async () => {
       try {
-        const res = await api.get("/api/parties?role=complainant&page=0&size=100");
+        const [res, jurisdictionRes] = await Promise.all([
+          api.get("/api/parties?role=complainant&page=0&size=100"),
+          api.get("/api/jurisdictions")
+        ]);
         if (!mounted) return;
         if (res.ok) {
           const items = res.body?.content ?? res.body ?? [];
           setComplainants(items.map((p: any) => ({ id: p.partyId ?? p.id ?? p.party_id, name: p.fullName ?? p.full_name })));
+        }
+        if (jurisdictionRes.ok) {
+          const items = jurisdictionRes.body?.content ?? jurisdictionRes.body ?? [];
+          setJurisdictions(items.map((j: any) => ({ id: j.jurisdictionId ?? j.id, name: j.name })));
+        } else {
+          console.error('Failed to fetch jurisdictions:', jurisdictionRes);
+          toast.error('Failed to fetch jurisdictions. Check if the backend is running.');
         }
       } catch (e) {}
     })();
@@ -79,7 +90,7 @@ const AddFIR = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!caseId || !suspectName || !incidentDetails || !dateOfIncident || !location) {
+    if (!caseId || !incidentDetails || !dateOfIncident || !location || !selectedJurisdiction) {
       toast.error("Please fill in all required fields.");
       return;
     }
@@ -100,13 +111,15 @@ const AddFIR = () => {
     try {
       if (isAddingComplainant) {
         // Create new complainant
-        const complainantResponse = await api.postJson('/api/parties', {
+        const complainantData = {
           fullName: newComplainant.name,
           nationalId: newComplainant.nationalId,
           address: newComplainant.address,
-          roleInCase: PARTY_ROLE.COMPLAINANT,
+          roleInCase: PARTY_ROLE.COMPLAINANT.toLowerCase(),
           isPublic: true
-        });
+        };
+        console.log('Creating complainant:', JSON.stringify(complainantData, null, 2));
+        const complainantResponse = await api.postJson('/api/parties', complainantData);
 
         if (!complainantResponse.ok) {
           console.error('Failed to create complainant:', complainantResponse);
@@ -116,13 +129,13 @@ const AddFIR = () => {
 
         // backend returns partyId field
         complainantParty = { 
-          partyId: complainantResponse.body.partyId ?? complainantResponse.body.id ?? null, 
-          roleInCase: PARTY_ROLE.COMPLAINANT,
+          partyId: complainantResponse.body.partyId ?? complainantResponse.body.id ?? null,
+          roleInCase: PARTY_ROLE.COMPLAINANT
         };
       } else {
         complainantParty = { 
-          partyId: selectedComplainant, 
-          roleInCase: 'complainant' 
+          partyId: selectedComplainant,
+          roleInCase: PARTY_ROLE.COMPLAINANT
         };
       }
     } catch (error) {
@@ -141,7 +154,7 @@ const AddFIR = () => {
           fullName: newAccused.name,
           nationalId: newAccused.nationalId,
           address: newAccused.address,
-          roleInCase: PARTY_ROLE.ACCUSED,
+          roleInCase: PARTY_ROLE.ACCUSED.toLowerCase(),
           isPublic: true,
         });
         if (!accRes.ok) {
@@ -149,12 +162,12 @@ const AddFIR = () => {
           toast.error(`Failed to create accused: ${accRes.status} - ${JSON.stringify(accRes.body)}`);
           return;
         }
-  accusedEntry = { partyId: accRes.body.partyId ?? accRes.body.id ?? null, roleInCase: PARTY_ROLE.ACCUSED };
+        accusedEntry = { partyId: accRes.body.partyId ?? accRes.body.id ?? null, roleInCase: PARTY_ROLE.ACCUSED };
       } else if (selectedAccused) {
         accusedEntry = { partyId: selectedAccused, roleInCase: PARTY_ROLE.ACCUSED };
-      } else if (suspectName) {
-        // include inline party object; backend will create it when creating case
-        accusedEntry = { party: { fullName: suspectName, roleInCase: PARTY_ROLE.ACCUSED }, roleInCase: PARTY_ROLE.ACCUSED };
+      } else {
+        toast.error('Please select or add an accused party');
+        return;
       }
     } catch (err) {
       console.error('Error preparing accused:', err);
@@ -169,7 +182,7 @@ const AddFIR = () => {
           fullName: newVictim.name,
           nationalId: newVictim.nationalId,
           address: newVictim.address,
-          roleInCase: PARTY_ROLE.VICTIM,
+          roleInCase: PARTY_ROLE.VICTIM.toLowerCase(),
           isPublic: true,
         });
         if (!vicRes.ok) {
@@ -177,7 +190,7 @@ const AddFIR = () => {
           toast.error(`Failed to create victim: ${vicRes.status} - ${JSON.stringify(vicRes.body)}`);
           return;
         }
-  victimEntry = { partyId: vicRes.body.partyId ?? vicRes.body.id ?? null, roleInCase: PARTY_ROLE.VICTIM };
+        victimEntry = { partyId: vicRes.body.partyId ?? vicRes.body.id ?? null, roleInCase: PARTY_ROLE.VICTIM };
       } else if (selectedVictim) {
         victimEntry = { partyId: selectedVictim, roleInCase: PARTY_ROLE.VICTIM };
       }
@@ -191,37 +204,44 @@ const AddFIR = () => {
     if (accusedEntry) partiesArray.push(accusedEntry);
     if (victimEntry) partiesArray.push(victimEntry);
 
-    const dto: any = {
+      const dto: any = {
       firId: caseId,
       registrationDate: (dateOfIncident ? (dateOfIncident.toISOString?.().slice(0,10) ?? new Date(dateOfIncident).toISOString().slice(0,10)) : new Date().toISOString().slice(0,10)),
-      jurisdictionId: null,
+      jurisdictionId: selectedJurisdiction,
       description: incidentDetails + "\nLocation: " + location,
-  // must match backend enum values (see case_status enum in SQL)
-  initialStatus: CASE_STATUS.FIR_FILED,
+      // must match backend enum values (see case_status enum in SQL)
+      initialStatus: CASE_STATUS.FIR_FILED,
       parties: partiesArray,
     };
-
-    try {
+    console.log('Sending case data:', JSON.stringify(dto, null, 2));    try {
+      console.log('Sending case data:', JSON.stringify(dto, null, 2));
       const res = await api.postJson('/api/cases', dto);
       if (!res.ok) {
-        console.error('Failed to file FIR response:', res);
+        console.error('Failed to file FIR. Response:', res);
+        console.error('Request data was:', dto);
         const body = typeof res.body === 'object' ? JSON.stringify(res.body) : String(res.body);
         toast.error(`Failed to file FIR: ${res.status} ${body}`);
       } else {
         toast.success(`FIR ${caseId} filed successfully!`);
         // Clear form
         setCaseId("");
-        setSuspectName("");
         setIncidentDetails("");
         setDateOfIncident(undefined);
         setLocation("");
         setSelectedComplainant(null);
+        setSelectedAccused(null);
+        setIsAddingAccused(false);
+        setNewAccused({ name: "", nationalId: "", address: "" });
+        setSelectedVictim(null);
+        setIsAddingVictim(false);
+        setNewVictim({ name: "", nationalId: "", address: "" });
         setIsAddingComplainant(false);
         setNewComplainant({
           name: "",
           nationalId: "",
           address: "",
         });
+        setSelectedJurisdiction(null);
       }
     } catch (e: any) {
       console.error('Network error filing FIR:', e);
@@ -241,29 +261,16 @@ const AddFIR = () => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="caseId">Case ID</Label>
-                <Input
-                  id="caseId"
-                  type="text"
-                  placeholder="e.g., FIR-2023-001"
-                  value={caseId}
-                  onChange={(e) => setCaseId(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="suspectName">Suspect Name</Label>
-                <Input
-                  id="suspectName"
-                  type="text"
-                  placeholder="e.g., John Doe"
-                  value={suspectName}
-                  onChange={(e) => setSuspectName(e.target.value)}
-                  required
-                />
-              </div>
+            <div className="space-y-2 mb-6">
+              <Label htmlFor="caseId">Case ID</Label>
+              <Input
+                id="caseId"
+                type="text"
+                placeholder="e.g., FIR-2023-001"
+                value={caseId}
+                onChange={(e) => setCaseId(e.target.value)}
+                required
+              />
             </div>
 
             <div className="space-y-4">
@@ -395,7 +402,7 @@ const AddFIR = () => {
                   className="w-full border rounded p-2"
                   required={!isAddingAccused}
                 >
-                  <option value="">Select accused (or leave blank and enter name above)</option>
+                  <option value="">Select accused</option>
                   {accusedList.map((c) => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
@@ -510,6 +517,21 @@ const AddFIR = () => {
                   onChange={(e) => setLocation(e.target.value)}
                   required
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="jurisdiction">Jurisdiction</Label>
+                <select
+                  id="jurisdiction"
+                  value={selectedJurisdiction ?? ""}
+                  onChange={(e) => setSelectedJurisdiction(e.target.value ? Number(e.target.value) : null)}
+                  className="w-full border rounded p-2"
+                  required
+                >
+                  <option value="">Select jurisdiction</option>
+                  {jurisdictions.map((j) => (
+                    <option key={j.id} value={j.id}>{j.name}</option>
+                  ))}
+                </select>
               </div>
             </div>
 

@@ -12,6 +12,6 @@ public class CaseParty {
     public CaseParty() {}
     public CaseParty(CasePartyId id) { this.id = id; }
 
-    public CasePartyId getId() { return id; }
-    public void setId(CasePartyId id) { this.id = id; }
+    public CasePartyId getCasePartyId() { return id; }
+    public void setCasePartyId(CasePartyId id) { this.id = id; }
 }

@@ -1,6 +1,7 @@
 // java
 package com.major.crmt.api;
 
+import com.major.crmt.api.dto.CaseDetailsDto;
 import com.major.crmt.api.dto.CreateCaseDto;
 import com.major.crmt.entities.CaseEntity;
 import com.major.crmt.repositories.CaseRepository;
@@ -22,19 +23,19 @@ public class CaseController {
     }
 
     @GetMapping
-    public Page<CaseEntity> list(@RequestParam(required = false) Long jurisdictionId,
-                                 @RequestParam(defaultValue = "0") int page,
-                                 @RequestParam(defaultValue = "20") int size) {
-        // simple: filter by jurisdictionId; extend using specifications for more filters
-        if (jurisdictionId != null) {
-            return caseRepository.findAll((root, cq, cb) -> cb.equal(root.get("jurisdictionId"), jurisdictionId), PageRequest.of(page, size));
-        }
-        return caseRepository.findAll(PageRequest.of(page, size));
+    public Page<CaseDetailsDto> list(@RequestParam(required = false) Long jurisdictionId,
+                                     @RequestParam(defaultValue = "0") int page,
+                                     @RequestParam(defaultValue = "20") int size) {
+        return caseService.listCases(jurisdictionId, PageRequest.of(page, size));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> get(@PathVariable Long id) {
-        return caseRepository.findById(id).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<CaseDetailsDto> get(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(caseService.getCaseDetails(id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @PostMapping

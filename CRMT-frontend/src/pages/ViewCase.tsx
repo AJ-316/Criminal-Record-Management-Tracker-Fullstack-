@@ -13,6 +13,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
 import api from "@/lib/api";
+import { CASE_STATUS, PARTY_ROLE } from "@/lib/constants";
 import { toast } from "sonner";
 
 interface Party {
@@ -41,7 +42,7 @@ interface Case {
   firId: string;
   registrationDate: string;
   description: string;
-  status: string;
+  currentStatus: string;
   parties: Party[];
   evidence?: Evidence[];
 }
@@ -61,6 +62,7 @@ const ViewCase = () => {
     try {
       const response = await api.get(`/api/cases/${id}`);
       if (response.ok) {
+        console.log("Fetched case data:", response.body);
         setCaseData(response.body);
       } else {
         toast.error("Failed to fetch case details");
@@ -72,12 +74,16 @@ const ViewCase = () => {
     }
   };
 
-  const getStatusBadgeVariant = (status: string) => {
+  const getStatusBadgeVariant = (status?: string) => {
+    if (!status) return 'outline';
     switch (status.toLowerCase()) {
-      case 'filed':
+      case 'fir_filed':
+      case 'chargesheet_filed':
+      case 'cognizance_taken':
+      case 'under_trial':
         return 'secondary';
-      case 'under_investigation':
-        return 'outline';
+      case 'judgment_given':
+      case 'appeal_pending':
       case 'closed':
         return 'default';
       case 'dismissed':
@@ -87,21 +93,37 @@ const ViewCase = () => {
     }
   };
 
-  const formatStatus = (status: string) => {
+  const formatStatus = (status?: string) => {
+    if (!status) return 'Unknown';
     return status.split('_').map(word => 
       word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
     ).join(' ');
   };
 
   if (loading) {
-    return <div className="container mx-auto p-4 text-center">Loading case details...</div>;
+    return (
+      <Card className="container mx-auto p-4 m-4">
+        <CardContent className="pt-6">
+          <div className="flex justify-center items-center min-h-[200px] text-muted-foreground">
+            Loading case details...
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   if (!caseData) {
-    return <div className="container mx-auto p-4 text-center">Case not found</div>;
+    return (
+      <Card className="container mx-auto p-4 m-4">
+        <CardContent className="pt-6">
+          <div className="text-center text-muted-foreground">Case not found or failed to load</div>
+        </CardContent>
+      </Card>
+    );
   }
 
   const getPartiesByRole = (role: string) => {
+    if (!caseData?.parties) return [];
     return caseData.parties.filter(p => p.roleInCase === role);
   };
 
@@ -128,8 +150,8 @@ const ViewCase = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Status</p>
-                <Badge variant={getStatusBadgeVariant(caseData.status)}>
-                  {formatStatus(caseData.status)}
+                <Badge variant={getStatusBadgeVariant(caseData.currentStatus)}>
+                  {formatStatus(caseData.currentStatus)}
                 </Badge>
               </div>
             </div>
@@ -147,7 +169,7 @@ const ViewCase = () => {
           </CardHeader>
           <CardContent>
             <Accordion type="single" collapsible>
-              {['complainant', 'accused', 'witness'].map(role => {
+              {[PARTY_ROLE.COMPLAINANT, PARTY_ROLE.ACCUSED, PARTY_ROLE.WITNESS].map(role => {
                 const parties = getPartiesByRole(role);
                 if (parties.length === 0) return null;
 

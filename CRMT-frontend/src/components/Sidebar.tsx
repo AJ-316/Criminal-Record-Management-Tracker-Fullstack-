@@ -39,7 +39,7 @@ const Sidebar = ({ className, isMobile, onLinkClick }: SidebarProps) => {
     {
       to: "/police/criminals",
       icon: <Users className="h-5 w-5" />,
-      label: "Criminal List",
+      label: "Parties List",
     },
     {
       to: "/police/firs",

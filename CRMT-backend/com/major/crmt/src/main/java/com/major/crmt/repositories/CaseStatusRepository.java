@@ -8,4 +8,5 @@ import java.util.List;
 
 public interface CaseStatusRepository extends JpaRepository<CaseStatus, Long> {
     List<CaseStatus> findByCaseIdOrderByUpdatedAtDesc(Long caseId);
+    java.util.Optional<CaseStatus> findFirstByCaseIdOrderByUpdatedAtDesc(Long caseId);
 }

@@ -18,6 +18,7 @@ import PoliceAdminDashboard from "./pages/PoliceAdminDashboard";
 import CriminalsList from "./pages/CriminalsList";
 import AddParty from "./pages/AddParty";
 import ViewCriminalProfile from "./pages/ViewCriminalProfile";
+import PartyProfile from "./pages/PartyProfile";
 import AddFIR from "./pages/AddFIR";
 import CaseFiles from "./pages/CaseFiles";
 import ViewCase from "./pages/ViewCase";
@@ -54,6 +55,8 @@ const App = () => (
               <Route path="/police/add-criminal" element={<Layout><Navigate to="/police/add-party" replace /></Layout>} />
               <Route path="/police/criminals" element={<Layout><CriminalsList /></Layout>} />
               <Route path="/police/criminal/:id" element={<Layout><ViewCriminalProfile /></Layout>} />
+              {/* Party profile route for police/admin views */}
+              <Route path="/police/parties/:id" element={<Layout><PartyProfile /></Layout>} />
               <Route path="/police/firs" element={<Layout><AddFIR /></Layout>} />
               {/* Case Management Routes */}
               <Route path="/police/case-files" element={<Layout><CaseFiles /></Layout>} />

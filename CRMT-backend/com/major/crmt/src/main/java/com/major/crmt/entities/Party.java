@@ -1,4 +1,3 @@
-// java
 package com.major.crmt.entities;
 
 import jakarta.persistence.*;

@@ -14,6 +14,17 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import api from "@/lib/api";
 import { toast } from "sonner";
 
@@ -22,7 +33,7 @@ interface Case {
   firId: string;
   registrationDate: string;
   description: string;
-  status: string;
+  currentStatus: string;
   parties: Array<{
     partyId: number;
     roleInCase: string;
@@ -125,17 +136,52 @@ const CaseFiles = () => {
                     <TableCell>{getPartyByRole(caseFile, PARTY_ROLE.COMPLAINANT)}</TableCell>
                     <TableCell>{getPartyByRole(caseFile, PARTY_ROLE.ACCUSED)}</TableCell>
                     <TableCell>
-                      <Badge variant={getStatusBadgeVariant(caseFile.status)}>
-                        {formatStatus(caseFile.status)}
+                      <Badge variant={getStatusBadgeVariant(caseFile.currentStatus)}>
+                        {formatStatus(caseFile.currentStatus)}
                       </Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="space-x-2">
                       <Button
                         variant="outline"
                         onClick={() => navigate(`/cases/${caseFile.caseId}`)}
                       >
                         View Details
                       </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive">Delete</Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Case {caseFile.firId}</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete this case? This action cannot be undone.
+                              All related data including parties and evidence will be deleted.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              className="bg-red-500 hover:bg-red-600"
+                              onClick={async () => {
+                                try {
+                                  const response = await api.delete(`/api/cases/${caseFile.caseId}`);
+                                  if (response.ok) {
+                                    toast.success("Case deleted successfully");
+                                    fetchCases(); // Refresh the list
+                                  } else {
+                                    toast.error("Failed to delete case");
+                                  }
+                                } catch (error) {
+                                  toast.error("Error deleting case");
+                                }
+                              }}
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </TableCell>
                   </TableRow>
                 ))}

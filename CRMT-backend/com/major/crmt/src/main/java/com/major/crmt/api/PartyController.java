@@ -1,6 +1,7 @@
 // java
 package com.major.crmt.api;
 
+import com.major.crmt.api.dto.PartyDto;
 import com.major.crmt.entities.Party;
 import com.major.crmt.repositories.PartyRepository;
 import com.major.crmt.repositories.CaseRepository;
@@ -36,8 +37,25 @@ public class PartyController {
     }
 
     @PostMapping
-    public Party create(@RequestBody Party p) {
-        return partyRepository.save(p);
+    public ResponseEntity<?> create(@RequestBody PartyDto dto) {
+        if (dto.getFullName() == null || dto.getFullName().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Full name is required");
+        }
+        if (dto.getRoleInCase() == null || dto.getRoleInCase().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Role in case is required");
+        }
+        
+        Party party = new Party();
+        party.setFullName(dto.getFullName());
+        party.setAlias(dto.getAlias());
+        party.setPhotoUrl(dto.getPhotoUrl());
+        party.setNationalId(dto.getNationalId());
+        party.setAddress(dto.getAddress());
+        party.setRoleInCase(dto.getRoleInCase());
+        party.setIsPublic(dto.getIsPublic() != null ? dto.getIsPublic() : true);
+        party.setCreatedAt(java.time.Instant.now());
+        
+        return ResponseEntity.ok(partyRepository.save(party));
     }
 
     @PutMapping("/{id}")

@@ -87,4 +87,8 @@ export function postForm(path: string, form: FormData, config?: AxiosRequestConf
   return parseResponse(client.post(path, form, cfg));
 }
 
-export default { client, API_BASE, get, postJson, putJson, postForm };
+export function deleteResource(path: string, config?: AxiosRequestConfig) {
+  return parseResponse(client.delete(path, config));
+}
+
+export default { client, API_BASE, get, postJson, putJson, postForm, delete: deleteResource };

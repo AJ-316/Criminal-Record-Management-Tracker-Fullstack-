@@ -30,29 +30,32 @@ type Party = {
   isPublic?: boolean;
 };
 
-const CriminalsList = () => {
+const PartyList = () => {
   const [parties, setParties] = useState<Party[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [roleFilter, setRoleFilter] = useState<string | null>(PARTY_ROLE.ACCUSED);
+  const [roleFilter, setRoleFilter] = useState<string | null>(null);
 
   const getRoleTitle = (role?: string | null) => {
     switch (role?.toLowerCase()) {
-      case 'accused': return 'Criminals';
-      case 'victim': return 'Victims';
-      case 'complainant': return 'Complainants';
+      case PARTY_ROLE.ACCUSED.toLowerCase(): return 'Accused Parties';
+      case PARTY_ROLE.VICTIM.toLowerCase(): return 'Victims';
+      case PARTY_ROLE.COMPLAINANT.toLowerCase(): return 'Complainants';
+      case PARTY_ROLE.WITNESS.toLowerCase(): return 'Witnesses';
       default: return 'All Parties';
     }
   };
 
   const getRoleSingular = (role?: string | null) => {
     switch (role?.toLowerCase()) {
-      case 'accused': return 'Criminal';
-      case 'victim': return 'Victim';
-      case 'complainant': return 'Complainant';
+      case PARTY_ROLE.ACCUSED.toLowerCase(): return 'Accused';
+      case PARTY_ROLE.VICTIM.toLowerCase(): return 'Victim';
+      case PARTY_ROLE.COMPLAINANT.toLowerCase(): return 'Complainant';
+      case PARTY_ROLE.WITNESS.toLowerCase(): return 'Witness';
       default: return 'Party';
     }
   };
+
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -84,19 +87,19 @@ const CriminalsList = () => {
     return () => { mounted = false; };
   }, [roleFilter]);
 
-  const handleDelete = (id: number) => {
-    // implement API delete later; for now mock
-    setParties((s) => s.filter((p) => p.partyId !== id));
-  };
-
   if (loading) return <div className="p-4">Loading...</div>;
   if (error) return <div className="p-4 text-red-600">Error: {error}</div>;
 
   return (
     <div className="container mx-auto p-4 md:p-8">
-      <h1 className="text-4xl font-bold mb-8 text-gray-900 dark:text-gray-50">
-        {getRoleTitle(roleFilter)}
-      </h1>
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-50">
+          {getRoleTitle(roleFilter)}
+        </h1>
+        <Link to="/police/add-party">
+          <Button>Add New Party</Button>
+        </Link>
+      </div>
 
       <div className="mb-4 flex items-center gap-4">
         <label className="text-sm font-medium">Filter by role:</label>
@@ -105,16 +108,17 @@ const CriminalsList = () => {
           onChange={(e) => setRoleFilter(e.target.value || null)}
           className="border rounded px-2 py-1"
         >
-          <option value="">All</option>
+          <option value="">All Parties</option>
           <option value={PARTY_ROLE.ACCUSED}>Accused</option>
           <option value={PARTY_ROLE.VICTIM}>Victim</option>
           <option value={PARTY_ROLE.COMPLAINANT}>Complainant</option>
+          <option value={PARTY_ROLE.WITNESS}>Witness</option>
         </select>
       </div>
 
       <Card className="bg-white dark:bg-gray-800 shadow-lg">
         <CardHeader>
-          <CardTitle className="text-2xl font-semibold">Registered {getRoleTitle(roleFilter)}</CardTitle>
+          <CardTitle className="text-2xl font-semibold">Party Registry</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -134,7 +138,7 @@ const CriminalsList = () => {
                   <TableRow key={p.partyId}>
                     <TableCell className="font-medium">{p.partyId}</TableCell>
                     <TableCell>{p.fullName}</TableCell>
-                    <TableCell>{p.roleInCase}</TableCell>
+                    <TableCell>{getRoleSingular(p.roleInCase)}</TableCell>
                     <TableCell>{p.nationalId}</TableCell>
                     <TableCell>
                       {p.isPublic ? (
@@ -145,7 +149,7 @@ const CriminalsList = () => {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end space-x-2">
-                        <Link to={`/police/criminal/${p.partyId}`}>
+                        <Link to={`/police/parties/${p.partyId}`}>
                           <Button variant="outline" size="sm">
                             <Eye className="h-4 w-4 mr-1" /> View
                           </Button>
@@ -218,4 +222,4 @@ const CriminalsList = () => {
   );
 };
 
-export default CriminalsList;
+export default PartyList;
