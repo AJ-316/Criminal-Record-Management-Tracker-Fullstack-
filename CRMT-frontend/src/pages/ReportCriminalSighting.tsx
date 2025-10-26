@@ -1,6 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import api from "@/lib/api";
+import { CASE_STATUS, PARTY_ROLE } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -12,16 +14,54 @@ import { toast } from "sonner";
 const ReportCriminalSighting = () => {
   const [description, setDescription] = useState("");
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+  const [victims, setVictims] = useState<any[]>([]);
+  const [selectedVictim, setSelectedVictim] = useState<number | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await api.get('/api/parties?role=victim&page=0&size=100');
+        if (!mounted) return;
+        if (res.ok) {
+          const items = res.body?.content ?? res.body ?? [];
+          setVictims(items.map((p: any) => ({ id: p.partyId ?? p.id ?? p.party_id, name: p.fullName ?? p.full_name })));
+        }
+      } catch (e) {}
+    })();
+    return () => { mounted = false; };
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!description.trim() || photoFiles.length === 0) {
       toast.error("Please provide a description and upload at least one photo.");
       return;
     }
-    // Mock submission logic
-    console.log("Reporting sighting:", { description, photoFiles });
-    toast.success("Criminal sighting reported successfully! Thank you for your submission.");
+    // For now create a lightweight case record with initialStatus 'sighting'
+    try {
+      const dto: any = {
+        firId: null,
+        registrationDate: new Date().toISOString().slice(0,10),
+        jurisdictionId: null,
+        description,
+        // use valid backend enum for status
+  initialStatus: CASE_STATUS.FIR_FILED,
+        parties: []
+      };
+      if (selectedVictim) {
+  dto.parties.push({ partyId: selectedVictim, roleInCase: PARTY_ROLE.VICTIM });
+      }
+      // if suspect not known, we won't add accused here
+      const res = await api.postJson('/api/cases', dto);
+      if (res.ok) {
+        toast.success('Sighting reported and case created (ID: ' + (res.body.caseId ?? res.body.case_id) + ')');
+      } else {
+        toast.error('Failed to report sighting: ' + (res.body || res.status));
+      }
+    } catch (e: any) {
+      toast.error('Network error while reporting sighting');
+    }
     // Clear form
     setDescription("");
     setPhotoFiles([]);
@@ -45,6 +85,14 @@ const ReportCriminalSighting = () => {
                 rows={7}
                 required
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="victim">Related Victim (optional)</Label>
+              <select id="victim" value={selectedVictim ?? ""} onChange={(e) => setSelectedVictim(e.target.value ? Number(e.target.value) : null)} className="w-full border rounded p-2">
+                <option value="">Select victim (if known)</option>
+                {victims.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+              </select>
             </div>
 
             <div className="space-y-2">

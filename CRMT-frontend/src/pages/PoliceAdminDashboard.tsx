@@ -1,16 +1,32 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import MapPlaceholder from "@/components/MapPlaceholder";
 import { Users, FileText, AlertTriangle } from "lucide-react";
+import api from "@/lib/api";
 
 const PoliceAdminDashboard = () => {
-  const mockSummaryData = {
-    totalCriminals: 1250,
-    recentCases: 45,
-    highRiskAlerts: 8,
-  };
+  const [summary, setSummary] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await api.get("/api/admin/summary");
+        if (!res.ok) {
+          setError(res.body?.toString?.() ?? "Failed to load summary");
+        } else {
+          setSummary(res.body);
+        }
+      } catch (e: any) {
+        setError(e?.message || String(e));
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
   return (
     <div className="container mx-auto p-4 md:p-8">
@@ -26,7 +42,7 @@ const PoliceAdminDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {mockSummaryData.totalCriminals}
+              {loading ? '...' : (summary?.totalParties ?? 0)}
             </div>
             <p className="text-xs text-muted-foreground">
               +20 from last month
@@ -41,7 +57,7 @@ const PoliceAdminDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {mockSummaryData.recentCases}
+              {loading ? '...' : (summary?.recentCases ?? 0)}
             </div>
             <p className="text-xs text-muted-foreground">
               +5 new cases this week
@@ -56,7 +72,8 @@ const PoliceAdminDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {mockSummaryData.highRiskAlerts}
+              {/* highRiskAlerts not available in backend yet - placeholder */}
+              {loading ? '...' : 0}
             </div>
             <p className="text-xs text-muted-foreground">
               Immediate action required

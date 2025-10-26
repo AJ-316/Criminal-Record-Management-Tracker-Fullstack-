@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -16,9 +16,11 @@ import NotFound from "./pages/NotFound";
 // Police/Admin Pages
 import PoliceAdminDashboard from "./pages/PoliceAdminDashboard";
 import CriminalsList from "./pages/CriminalsList";
-import AddCriminal from "./pages/AddCriminal";
+import AddParty from "./pages/AddParty";
 import ViewCriminalProfile from "./pages/ViewCriminalProfile";
 import AddFIR from "./pages/AddFIR";
+import CaseFiles from "./pages/CaseFiles";
+import ViewCase from "./pages/ViewCase";
 
 // Lawyer Pages
 import LawyerDashboard from "./pages/LawyerDashboard";
@@ -47,12 +49,15 @@ const App = () => (
             {/* Protected Routes for Police/Admin */}
             <Route element={<ProtectedRoute allowedRoles={["police", "admin"]} />}>
               <Route path="/police/dashboard" element={<Layout><PoliceAdminDashboard /></Layout>} />
-              <Route path="/police/add-criminal" element={<Layout><AddCriminal /></Layout>} />
+              <Route path="/police/add-party" element={<Layout><AddParty /></Layout>} />
+              {/* Redirect from old route to new one to avoid 404s from bookmarks or cached links */}
+              <Route path="/police/add-criminal" element={<Layout><Navigate to="/police/add-party" replace /></Layout>} />
               <Route path="/police/criminals" element={<Layout><CriminalsList /></Layout>} />
               <Route path="/police/criminal/:id" element={<Layout><ViewCriminalProfile /></Layout>} />
               <Route path="/police/firs" element={<Layout><AddFIR /></Layout>} />
-              {/* Placeholder for Case Files, Reports, Alerts */}
-              <Route path="/police/case-files" element={<Layout><div>Police/Admin Case Files Page</div></Layout>} />
+              {/* Case Management Routes */}
+              <Route path="/police/case-files" element={<Layout><CaseFiles /></Layout>} />
+              <Route path="/cases/:id" element={<Layout><ViewCase /></Layout>} />
               <Route path="/police/reports" element={<Layout><div>Police/Admin Reports Page</div></Layout>} />
               <Route path="/police/alerts" element={<Layout><div>Police/Admin Alerts Page</div></Layout>} />
             </Route>

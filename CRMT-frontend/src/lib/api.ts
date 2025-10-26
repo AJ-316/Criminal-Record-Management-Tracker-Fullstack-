@@ -64,6 +64,16 @@ export function get(path: string, config?: AxiosRequestConfig) {
   return parseResponse(client.get(path, config));
 }
 
+export function getParties(role?: string, page = 0, size = 50, query?: string) {
+  const params = new URLSearchParams();
+  if (role) params.set("role", role);
+  if (typeof page === "number") params.set("page", String(page));
+  if (typeof size === "number") params.set("size", String(size));
+  if (query) params.set("query", query);
+  const path = `/api/parties?${params.toString()}`;
+  return parseResponse(client.get(path));
+}
+
 export function postJson(path: string, data: any, config?: AxiosRequestConfig) {
   return parseResponse(client.post(path, data, config));
 }

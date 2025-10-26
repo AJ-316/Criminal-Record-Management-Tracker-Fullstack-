@@ -3,6 +3,7 @@ package com.major.crmt.api;
 
 import com.major.crmt.entities.Party;
 import com.major.crmt.repositories.PartyRepository;
+import com.major.crmt.repositories.CaseRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
@@ -12,7 +13,8 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/parties")
 public class PartyController {
     private final PartyRepository partyRepository;
-    public PartyController(PartyRepository partyRepository) { this.partyRepository = partyRepository; }
+    private final CaseRepository caseRepository;
+    public PartyController(PartyRepository partyRepository, CaseRepository caseRepository) { this.partyRepository = partyRepository; this.caseRepository = caseRepository; }
 
     @GetMapping
     public Page<Party> list(@RequestParam(required = false) String role,
@@ -58,5 +60,15 @@ public class PartyController {
         if (!partyRepository.existsById(id)) return ResponseEntity.notFound().build();
         partyRepository.deleteById(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/cases")
+    public ResponseEntity<?> cases(@PathVariable Long id) {
+        try {
+            java.util.List<?> cases = caseRepository.findByPartyId(id);
+            return ResponseEntity.ok(cases);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Failed to load cases for party");
+        }
     }
 }

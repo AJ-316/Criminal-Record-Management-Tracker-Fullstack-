@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import api from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,6 +62,18 @@ const mockCriminalProfiles = [
 
 const LawyerDashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [summary, setSummary] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await api.get('/api/admin/summary');
+        if (res.ok) setSummary(res.body);
+      } catch (e) {}
+      setLoading(false);
+    })();
+  }, []);
 
   const filteredCriminals = mockCriminalProfiles.filter((criminal) =>
     criminal.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -78,7 +91,34 @@ const LawyerDashboard = () => {
         Lawyer Dashboard
       </h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+          {/* Summary tiles */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <Card className="bg-white dark:bg-gray-800 shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-xl">Total Cases</CardTitle>
+                <CardDescription>
+                  {loading ? "Loading..." : summary ? summary.totalCases : "—"}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{loading ? "..." : summary ? summary.totalCases : "—"}</div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white dark:bg-gray-800 shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-xl">Total Parties</CardTitle>
+                <CardDescription>
+                  {loading ? "Loading..." : summary ? summary.totalParties : "—"}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{loading ? "..." : summary ? summary.totalParties : "—"}</div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
         {/* Assigned Cases */}
         <Card className="bg-white dark:bg-gray-800 shadow-lg">
           <CardHeader>

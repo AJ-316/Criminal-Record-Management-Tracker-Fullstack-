@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import api from "@/lib/api";
+import { PARTY_ROLE } from "@/lib/constants";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -22,11 +23,31 @@ const CriminalsList = () => {
   const [parties, setParties] = useState<Party[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [roleFilter, setRoleFilter] = useState<string | null>(PARTY_ROLE.ACCUSED);
+
+  const getRoleTitle = (role?: string | null) => {
+    switch (role?.toLowerCase()) {
+      case 'accused': return 'Criminals';
+      case 'victim': return 'Victims';
+      case 'complainant': return 'Complainants';
+      default: return 'All Parties';
+    }
+  };
+
+  const getRoleSingular = (role?: string | null) => {
+    switch (role?.toLowerCase()) {
+      case 'accused': return 'Criminal';
+      case 'victim': return 'Victim';
+      case 'complainant': return 'Complainant';
+      default: return 'Party';
+    }
+  };
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        const res = await api.get("/api/parties?page=0&size=50");
+        const role = roleFilter;
+        const res = await api.get(role ? `/api/parties?role=${encodeURIComponent(role)}&page=0&size=50` : "/api/parties?page=0&size=50");
         if (!mounted) return;
         if (!res.ok) {
           setError(res.body?.toString?.() ?? "Failed to load");
@@ -50,7 +71,7 @@ const CriminalsList = () => {
       }
     })();
     return () => { mounted = false; };
-  }, []);
+  }, [roleFilter]);
 
   const handleDelete = (id: number) => {
     // implement API delete later; for now mock
@@ -63,12 +84,26 @@ const CriminalsList = () => {
   return (
     <div className="container mx-auto p-4 md:p-8">
       <h1 className="text-4xl font-bold mb-8 text-gray-900 dark:text-gray-50">
-        Criminals List
+        {getRoleTitle(roleFilter)}
       </h1>
+
+      <div className="mb-4 flex items-center gap-4">
+        <label className="text-sm font-medium">Filter by role:</label>
+        <select
+          value={roleFilter ?? ""}
+          onChange={(e) => setRoleFilter(e.target.value || null)}
+          className="border rounded px-2 py-1"
+        >
+          <option value="">All</option>
+          <option value={PARTY_ROLE.ACCUSED}>Accused</option>
+          <option value={PARTY_ROLE.VICTIM}>Victim</option>
+          <option value={PARTY_ROLE.COMPLAINANT}>Complainant</option>
+        </select>
+      </div>
 
       <Card className="bg-white dark:bg-gray-800 shadow-lg">
         <CardHeader>
-          <CardTitle className="text-2xl font-semibold">Registered Criminals</CardTitle>
+          <CardTitle className="text-2xl font-semibold">Registered {getRoleTitle(roleFilter)}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">

@@ -3,211 +3,155 @@ CREATE DATABASE test_crms;
 USE test_crms;
 
 -- ============================
--- JURISDICTIONS (Police stations / courts)
+-- JURISDICTIONS
 -- ============================
-CREATE TABLE Jurisdictions (
-    JurisdictionID  BIGINT AUTO_INCREMENT PRIMARY KEY,
-    Name            VARCHAR(200) NOT NULL,
-    Type            ENUM('PoliceStation', 'Court') NOT NULL,
-    Level           ENUM('Local', 'District', 'State', 'HighCourt', 'SupremeCourt') DEFAULT 'Local',
-    Address         TEXT
+CREATE TABLE jurisdictions (
+    jurisdiction_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(200) NOT NULL,
+    type ENUM('police_station', 'court') NOT NULL,
+    level ENUM('local', 'district', 'state', 'high_court', 'supreme_court') DEFAULT 'local',
+    address TEXT
 );
 
 -- ============================
--- USERS (System Access Roles)
+-- USERS
 -- ============================
-CREATE TABLE Users (
-    UserID          BIGINT AUTO_INCREMENT PRIMARY KEY,
-    Username        VARCHAR(100) UNIQUE NOT NULL,
-    PasswordHash    VARCHAR(255) NOT NULL,
-    FullName        VARCHAR(200),
-    Role            ENUM('Admin', 'Police', 'Investigator', 'Lawyer', 'Judge', 'Civilian') NOT NULL,
-    CreatedAt       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE users (
+    user_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(100) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    full_name VARCHAR(200),
+    role ENUM('admin', 'police', 'investigator', 'lawyer', 'judge', 'civilian') NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ============================
--- PERMISSIONS (Task Permissions)
+-- PERMISSIONS
 -- ============================
-CREATE TABLE Permissions (
-    PermissionID BIGINT AUTO_INCREMENT PRIMARY KEY,
-    Name         VARCHAR(100) UNIQUE NOT NULL
+CREATE TABLE permissions (
+    permission_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) UNIQUE NOT NULL
 );
 
 -- ============================
--- ROLE PERMISSIONS (Link: Users with Permissions)
+-- ROLE PERMISSIONS
 -- ============================
-CREATE TABLE RolePermissions (
-    UserID       BIGINT,
-    PermissionID BIGINT,
-    PRIMARY KEY (UserID, PermissionID),
-    FOREIGN KEY (UserID) REFERENCES Users(UserID) ON DELETE CASCADE,
-    FOREIGN KEY (PermissionID) REFERENCES Permissions(PermissionID) ON DELETE CASCADE
+CREATE TABLE role_permissions (
+    user_id BIGINT,
+    permission_id BIGINT,
+    PRIMARY KEY (user_id, permission_id),
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (permission_id) REFERENCES permissions(permission_id) ON DELETE CASCADE
 );
 
 -- ============================
 -- ADMIN / POLICE / LAWYER / JUDGE / CIVILIAN
 -- ============================
-CREATE TABLE Admins (
-    UserID          BIGINT PRIMARY KEY,
-    FOREIGN KEY (UserID) REFERENCES Users(UserID) ON DELETE CASCADE
+CREATE TABLE admins (
+    user_id BIGINT PRIMARY KEY,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
-CREATE TABLE Police (
-	UserID          BIGINT PRIMARY KEY,
-    BadgeNumber     VARCHAR(50) UNIQUE,
-    PoliceRank      VARCHAR(100),
-    JurisdictionID  BIGINT,
-    FOREIGN KEY (JurisdictionID) REFERENCES Jurisdictions(JurisdictionID) ON DELETE SET NULL,
-    FOREIGN KEY (UserID) REFERENCES Users(UserID) ON DELETE CASCADE
+CREATE TABLE police (
+    user_id BIGINT PRIMARY KEY,
+    badge_no VARCHAR(50) UNIQUE,
+    rank VARCHAR(100),
+    jurisdiction_id BIGINT,
+    FOREIGN KEY (jurisdiction_id) REFERENCES jurisdictions(jurisdiction_id) ON DELETE SET NULL,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
-CREATE TABLE Investigators (
-    UserID          BIGINT PRIMARY KEY,
-    Department      VARCHAR(200),
-    FOREIGN KEY (UserID) REFERENCES Users(UserID) ON DELETE CASCADE
+CREATE TABLE investigators (
+    user_id BIGINT PRIMARY KEY,
+    dept VARCHAR(200),
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
-CREATE TABLE Lawyers (
-    UserID          BIGINT PRIMARY KEY,
-    LicenseNumber   VARCHAR(100) UNIQUE NOT NULL,
-    FirmName        VARCHAR(200),
-    FOREIGN KEY (UserID) REFERENCES Users(UserID) ON DELETE CASCADE
+CREATE TABLE lawyers (
+    user_id BIGINT PRIMARY KEY,
+    license_no VARCHAR(100) UNIQUE NOT NULL,
+    firm VARCHAR(200),
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
-CREATE TABLE Judges (
-    UserID          BIGINT PRIMARY KEY,
-    JurisdictionID  BIGINT,
-    FOREIGN KEY (JurisdictionID) REFERENCES Jurisdictions(JurisdictionID) ON DELETE SET NULL,
-    FOREIGN KEY (UserID) REFERENCES Users(UserID) ON DELETE CASCADE
+CREATE TABLE judges (
+    user_id BIGINT PRIMARY KEY,
+    jurisdiction_id BIGINT,
+    FOREIGN KEY (jurisdiction_id) REFERENCES jurisdictions(jurisdiction_id) ON DELETE SET NULL,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
-CREATE TABLE Civilians (
-    UserID          BIGINT PRIMARY KEY,
-    NationalID      VARCHAR(50) UNIQUE,
-    FOREIGN KEY (UserID) REFERENCES Users(UserID) ON DELETE CASCADE
+CREATE TABLE civilians (
+    user_id BIGINT PRIMARY KEY,
+    national_id VARCHAR(50) UNIQUE,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
 -- ============================
--- PARTIES (Case parties)
+-- PARTIES
 -- ============================
-CREATE TABLE Parties (
-    PartyID         BIGINT AUTO_INCREMENT PRIMARY KEY,
-    FullName        VARCHAR(200) NOT NULL,
-    Alias           VARCHAR(200),
-    PhotoURL        VARCHAR(255),
-    NationalID      VARCHAR(50),
-    Address         TEXT,
-    RoleInCase      ENUM('Accused', 'Victim', 'Complainant') NOT NULL,
-    IsPublic		BOOL NOT NULL DEFAULT TRUE,
-    CreatedAt       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE parties (
+    party_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    full_name VARCHAR(200) NOT NULL,
+    alias VARCHAR(200),
+    photo_url VARCHAR(255),
+    national_id VARCHAR(50),
+    address TEXT,
+    role_in_case ENUM('accused', 'victim', 'complainant') NOT NULL,
+    is_public BOOL NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ============================
 -- CASES
 -- ============================
-CREATE TABLE Cases (
-    CaseID          BIGINT AUTO_INCREMENT PRIMARY KEY,
-    FIR_ID          VARCHAR(100) UNIQUE,
-    RegistrationDate DATE NOT NULL,
-    JurisdictionID  BIGINT,
-    Description     TEXT,
-    FOREIGN KEY (JurisdictionID) REFERENCES Jurisdictions(JurisdictionID) ON DELETE SET NULL
+CREATE TABLE cases (
+    case_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    fir_id VARCHAR(100) UNIQUE,
+    reg_date DATE NOT NULL,
+    jurisdiction_id BIGINT,
+    description TEXT,
+    FOREIGN KEY (jurisdiction_id) REFERENCES jurisdictions(jurisdiction_id) ON DELETE SET NULL
 );
 
-CREATE TABLE CaseParties (
-    CaseID          BIGINT,
-    PartyID         BIGINT,
-    RoleInCase      ENUM('Accused', 'Victim', 'Complainant') NOT NULL,
-    PRIMARY KEY (CaseID, PartyID, RoleInCase),
-    FOREIGN KEY (CaseID) REFERENCES Cases(CaseID) ON DELETE CASCADE,
-    FOREIGN KEY (PartyID) REFERENCES Parties(PartyID) ON DELETE CASCADE
+CREATE TABLE case_parties (
+    case_id BIGINT,
+    party_id BIGINT,
+    role_in_case ENUM('accused', 'victim', 'complainant') NOT NULL,
+    PRIMARY KEY (case_id, party_id, role_in_case),
+    FOREIGN KEY (case_id) REFERENCES cases(case_id) ON DELETE CASCADE,
+    FOREIGN KEY (party_id) REFERENCES parties(party_id) ON DELETE CASCADE
 );
 
-CREATE TABLE CaseLegal (
-    CaseID              BIGINT PRIMARY KEY,
-    ProsecutorLawyerID  BIGINT,
-    DefenseLawyerID     BIGINT,
-    JudgeID             BIGINT,
-    FOREIGN KEY (CaseID) REFERENCES Cases(CaseID) ON DELETE CASCADE,
-    FOREIGN KEY (ProsecutorLawyerID) REFERENCES Users(UserID),
-    FOREIGN KEY (DefenseLawyerID) REFERENCES Users(UserID),
-    FOREIGN KEY (JudgeID) REFERENCES Users(UserID)
+CREATE TABLE case_legal (
+    case_id BIGINT PRIMARY KEY,
+    prosecutor_id BIGINT,
+    defense_id BIGINT,
+    judge_id BIGINT,
+    FOREIGN KEY (case_id) REFERENCES cases(case_id) ON DELETE CASCADE,
+    FOREIGN KEY (prosecutor_id) REFERENCES users(user_id),
+    FOREIGN KEY (defense_id) REFERENCES users(user_id),
+    FOREIGN KEY (judge_id) REFERENCES users(user_id)
 );
 
-CREATE TABLE CaseStatus (
-    StatusID        BIGINT AUTO_INCREMENT PRIMARY KEY,
-    CaseID          BIGINT NOT NULL,
-    Status          ENUM('FIR Filed', 'Chargesheet Filed', 'Cognizance Taken', 'Under Trial', 'Judgment Given', 'Appeal Pending', 'Closed') NOT NULL,
-    UpdatedBy       BIGINT NOT NULL,
-    UpdatedAt       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (CaseID) REFERENCES Cases(CaseID) ON DELETE CASCADE,
-    FOREIGN KEY (UpdatedBy) REFERENCES Users(UserID)
+CREATE TABLE case_status (
+    status_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    case_id BIGINT NOT NULL,
+    status ENUM('fir_filed', 'chargesheet_filed', 'cognizance_taken', 'under_trial', 'judgment_given', 'appeal_pending', 'closed') NOT NULL,
+    updated_by BIGINT NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (case_id) REFERENCES cases(case_id) ON DELETE CASCADE,
+    FOREIGN KEY (updated_by) REFERENCES users(user_id)
 );
 
-CREATE TABLE Evidence (
-    EvidenceID      BIGINT AUTO_INCREMENT PRIMARY KEY,
-    CaseID          BIGINT NOT NULL,
-    AddedBy         BIGINT NOT NULL,
-    EvidenceType    ENUM('Document', 'Image', 'Video', 'Audio', 'Other') NOT NULL,
-    FilePath        VARCHAR(255) NOT NULL,
-    ShortDescription VARCHAR(255),
-    CreatedAt       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (CaseID) REFERENCES Cases(CaseID) ON DELETE CASCADE,
-    FOREIGN KEY (AddedBy) REFERENCES Users(UserID)
+CREATE TABLE evidence (
+    evidence_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    case_id BIGINT NOT NULL,
+    added_by BIGINT NOT NULL,
+    type ENUM('document', 'image', 'video', 'audio', 'other') NOT NULL,
+    file_path VARCHAR(255) NOT NULL,
+    short_desc VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (case_id) REFERENCES cases(case_id) ON DELETE CASCADE,
+    FOREIGN KEY (added_by) REFERENCES users(user_id)
 );
-
--- Jurisdictions
-INSERT INTO Jurisdictions (Name, Type, Level, Address) VALUES
-('Delhi Police Station Connaught Place', 'PoliceStation', 'District', 'Connaught Place, New Delhi'),
-('Mumbai High Court', 'Court', 'HighCourt', 'Fort, Mumbai'),
-('Supreme Court of India', 'Court', 'SupremeCourt', 'Tilak Marg, New Delhi');
-
--- Users
-INSERT INTO Users (Username, PasswordHash, FullName, Role) VALUES
-('admin1', 'hash123', 'System Admin', 'Admin'),
-('police101', 'hash456', 'Inspector Rajesh Kumar', 'Police'),
-('lawyer88', 'hash789', 'Advocate Meera Sharma', 'Lawyer'),
-('judge77', 'hash321', 'Justice A.K. Verma', 'Judge'),
-('civilian22', 'hash654', 'Rohit Sharma', 'Civilian');
-
--- Police
-INSERT INTO Police (UserID, BadgeNumber, PoliceRank, JurisdictionID) VALUES
-(2, 'DL-PS-101', 'Inspector', 1);
-
--- Lawyers
-INSERT INTO Lawyers (UserID, LicenseNumber, FirmName) VALUES
-(3, 'DL-BA-5678', 'Sharma & Co.');
-
--- Judges
-INSERT INTO Judges (UserID, JurisdictionID) VALUES
-(4, 2);
-
--- Civilians
-INSERT INTO Civilians (UserID, NationalID) VALUES
-(5, 'Aadhar-1122334455');
-
--- Parties
-INSERT INTO Parties (FullName, RoleInCase, Address, NationalID) VALUES
-('Amit Singh', 'Accused', 'Delhi', 'Aadhar-6677889900'),
-('Priya Mehta', 'Victim', 'Mumbai', 'Aadhar-2233445566');
-
--- Cases
-INSERT INTO Cases (FIR_ID, RegistrationDate, JurisdictionID, Description) VALUES
-('FIR-2025-DEL-001', '2025-09-01', 1, 'Robbery at Connaught Place');
-
--- Case Parties
-INSERT INTO CaseParties (CaseID, PartyID, RoleInCase) VALUES
-(1, 1, 'Accused'),
-(1, 2, 'Victim');
-
--- Case Legal
-INSERT INTO CaseLegal (CaseID, ProsecutorLawyerID, DefenseLawyerID, JudgeID) VALUES
-(1, 3, NULL, 4);
-
--- Case Status
-INSERT INTO CaseStatus (CaseID, Status, UpdatedBy) VALUES
-(1, 'FIR Filed', 2);
-
--- Evidence
-INSERT INTO Evidence (CaseID, AddedBy, EvidenceType, FilePath, ShortDescription) VALUES
-(1, 2, 'Image', '/evidence/case1/cctv1.jpg', 'CCTV footage from shop');
