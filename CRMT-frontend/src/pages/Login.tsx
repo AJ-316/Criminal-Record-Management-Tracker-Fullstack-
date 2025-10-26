@@ -12,24 +12,35 @@ import { toast } from "sonner";
 import { Fingerprint } from "lucide-react";
 
 const Login = () => {
-  const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [selectedRole, setSelectedRole] = useState<UserRole>("public");
-  const { login } = useAuth();
+  const { login, loginServer } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (name.trim() === "") {
-      toast.error("Please enter your name.");
+    if (username.trim() === "") {
+      toast.error("Please enter your username.");
       return;
     }
     if (!selectedRole) {
       toast.error("Please select a role.");
       return;
     }
-    login(name, selectedRole);
-    toast.success(`Logged in as ${name} (${selectedRole})`);
-
+    // if backend available, try server login, else fallback to mock login
+    if (loginServer) {
+      try {
+        const u = await loginServer(username, password);
+        toast.success(`Logged in as ${u.name} (${u.role})`);
+      } catch (err: any) {
+        toast.error(err?.body || "Login failed");
+        return;
+      }
+    } else {
+      login(username, selectedRole);
+      toast.success(`Logged in as ${username} (${selectedRole})`);
+    }
     // Redirect based on role
     if (selectedRole === "police" || selectedRole === "admin") {
       navigate("/police/dashboard");
@@ -57,14 +68,22 @@ const Login = () => {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="username">Username</Label>
               <Input
-                id="name"
+                id="username"
                 type="text"
-                placeholder="John Doe"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                placeholder="your username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 required
+              />
+              <Label htmlFor="password" className="mt-2">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
               />
             </div>
             <div className="space-y-2">
